@@ -1,5 +1,72 @@
-import { getMetadata } from '../../scripts/aem.js';
+import {
+  getMetadata,
+  loadCSS,
+  loadScript,
+} from '../../scripts/aem.js';
 import { loadFragment } from '../fragment/fragment.js';
+
+/** AEM publish base URL; override with meta aem-publish-url. */
+const DEFAULT_AEM_PUBLISH_BASE_URL = 'https://publish-p192772-e2003561.adobeaemcloud.com';
+
+/** Default /etc.clientlibs/{app}/clientlibs app id; override via meta aem-clientlib-app. */
+const DEFAULT_AEM_CLIENTLIB_APP = 'kao-sandbox-3';
+
+/**
+ * Builds the header URL for a given AEM content path.
+ * @param {string} contentPath - e.g. '/content/kao-sandbox-3/us/en'
+ * @param {string} baseUrl - AEM publish base URL
+ * @returns {string}
+ */
+function buildHeaderUrl(contentPath, baseUrl) {
+  const normalized = contentPath.startsWith('/') ? contentPath : `/${contentPath}`;
+  return `${baseUrl.replace(/\/$/, '')}${normalized}.eds-header.html`;
+}
+
+/**
+ * Resolves the AEM clientlib base URL (folder containing clientlib-*.css/js).
+ * @param {string} baseUrl
+ */
+function getAemClientlibBase(baseUrl) {
+  const fromMeta = getMetadata('aem-clientlib-base');
+  if (fromMeta) return fromMeta.replace(/\/$/, '');
+  const app = getMetadata('aem-clientlib-app') || DEFAULT_AEM_CLIENTLIB_APP;
+  return `${baseUrl.replace(/\/$/, '')}/etc.clientlibs/${app}/clientlibs`;
+}
+
+/**
+ * Fetches the header HTML snippet from AEM for the given content path.
+ * @param {string} contentPath
+ * @param {string} baseUrl
+ * @returns {Promise<string>}
+ */
+async function fetchHeaderHtml(contentPath, baseUrl) {
+  const url = buildHeaderUrl(contentPath, baseUrl);
+  const response = await fetch(url, { credentials: 'omit', cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`[header] Failed to fetch header from AEM for path "${contentPath}": ${response.status} ${response.statusText}`);
+  }
+  return response.text();
+}
+
+/**
+ * Loads AEM clientlibs (CSS and JS) required for the header XF to display correctly.
+ * @param {string} baseUrl - AEM publish base URL
+ */
+async function injectAemClientlibs(baseUrl) {
+  const clientlibBase = getAemClientlibBase(baseUrl);
+  const styles = [
+    `${clientlibBase}/clientlib-dependencies.css`,
+    `${clientlibBase}/clientlib-site.css`,
+  ];
+  const scripts = [
+    `${clientlibBase}/clientlib-dependencies.js`,
+    `${clientlibBase}/clientlib-site.js`,
+  ];
+  await Promise.all([
+    ...styles.map((href) => loadCSS(href)),
+    ...scripts.map((src) => loadScript(src)),
+  ]);
+}
 
 // media query match that indicates mobile/tablet width
 const isDesktop = window.matchMedia('(min-width: 900px)');
@@ -113,12 +180,33 @@ function toggleMenu(nav, navSections, forceExpanded = null) {
  * @param {Element} block The header block element
  */
 export default async function decorate(block) {
-  // load nav as fragment
+  const contentPath = getMetadata('aem-content-path') || getMetadata('aemContentPath')
+    || getMetadata('aemcontentpath');
+  if (contentPath) {
+    const baseUrl = getMetadata('aem-publish-url') || getMetadata('aempublishurl')
+      || DEFAULT_AEM_PUBLISH_BASE_URL;
+    try {
+      const html = await fetchHeaderHtml(contentPath, baseUrl);
+      block.innerHTML = html;
+      block.classList.add('header-aem-xf');
+      await injectAemClientlibs(baseUrl);
+      return;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[header] Error loading AEM header:', e);
+      block.classList.remove('header-aem-xf');
+      block.innerHTML = '';
+      return;
+    }
+  }
+
   const navMeta = getMetadata('nav');
   const navPath = navMeta ? new URL(navMeta, window.location).pathname : '/nav';
   const fragment = await loadFragment(navPath);
+  if (!fragment) {
+    return;
+  }
 
-  // decorate nav DOM
   block.textContent = '';
   const nav = document.createElement('nav');
   nav.id = 'nav';
@@ -131,10 +219,12 @@ export default async function decorate(block) {
   });
 
   const navBrand = nav.querySelector('.nav-brand');
-  const brandLink = navBrand.querySelector('.button');
-  if (brandLink) {
-    brandLink.className = '';
-    brandLink.closest('.button-container').className = '';
+  if (navBrand) {
+    const brandLink = navBrand.querySelector('.button');
+    if (brandLink) {
+      brandLink.className = '';
+      brandLink.closest('.button-container').className = '';
+    }
   }
 
   const navSections = nav.querySelector('.nav-sections');
@@ -151,7 +241,6 @@ export default async function decorate(block) {
     });
   }
 
-  // hamburger for mobile
   const hamburger = document.createElement('div');
   hamburger.classList.add('nav-hamburger');
   hamburger.innerHTML = `<button type="button" aria-controls="nav" aria-label="Open navigation">
@@ -160,7 +249,6 @@ export default async function decorate(block) {
   hamburger.addEventListener('click', () => toggleMenu(nav, navSections));
   nav.prepend(hamburger);
   nav.setAttribute('aria-expanded', 'false');
-  // prevent mobile nav behavior on window resize
   toggleMenu(nav, navSections, isDesktop.matches);
   isDesktop.addEventListener('change', () => toggleMenu(nav, navSections, isDesktop.matches));
 

@@ -12,6 +12,18 @@ import {
   loadCSS,
 } from './aem.js';
 
+/* Default aem-content-path when delivery does not emit meta (UE page metadata wins if present). */
+(function injectDefaultAemContentPathMeta() {
+  if (document.head.querySelector('meta[name="aem-content-path"]')
+      || document.head.querySelector('meta[name="aemContentPath"]')) {
+    return;
+  }
+  const meta = document.createElement('meta');
+  meta.name = 'aem-content-path';
+  meta.content = '/content/kao-sandbox-3';
+  document.head.appendChild(meta);
+}());
+
 /**
  * Builds hero block and prepends to main in a new section.
  * @param {Element} main The container element
