@@ -1,5 +1,0 @@
-mountpoints:
-  /:
-    url: "https://author-p192772-e2003561.adobeaemcloud.com/bin/franklin.delivery/nicolas-kojima-adobe/kao-sandbox-3/main"
-    type: "markup"
-    suffix: ".html"
