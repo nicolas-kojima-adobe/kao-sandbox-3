@@ -29,7 +29,7 @@ function resolveAemContentPath() {
 const DEFAULT_AEM_PUBLISH_BASE_URL = 'https://publish-p192772-e2003561.adobeaemcloud.com';
 
 /** Default /etc.clientlibs/{app}/clientlibs app id; override via meta aem-clientlib-app. */
-const DEFAULT_AEM_CLIENTLIB_APP = 'kao-sandbox-3';
+const DEFAULT_AEM_CLIENTLIB_APP = 'kaosandbox2';
 
 /**
  * Builds the header URL for a given AEM content path.
@@ -208,7 +208,12 @@ export default async function decorate(block) {
       const html = await fetchHeaderHtml(contentPath, baseUrl);
       block.innerHTML = html;
       block.classList.add('header-aem-xf');
-      await injectAemClientlibs(baseUrl);
+      try {
+        await injectAemClientlibs(baseUrl);
+      } catch (libErr) {
+        // eslint-disable-next-line no-console
+        console.warn('[header] AEM clientlibs failed; header markup is still shown:', libErr);
+      }
       return;
     } catch (e) {
       // eslint-disable-next-line no-console
