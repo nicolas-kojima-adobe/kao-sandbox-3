@@ -24,7 +24,7 @@
       {
         "component": "text",
         "valueType": "string",
-        "name": "aemContentPath",
+        "name": "aem-content-path",
         "label": "AEM Content Path",
         "description": "AEM page path whose header should be displayed (e.g. /content/kao-sandbox-3/us/en)",
         "value": "/content/kao-sandbox-3"

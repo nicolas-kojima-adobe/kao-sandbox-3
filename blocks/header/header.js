@@ -5,6 +5,26 @@ import {
 } from '../../scripts/aem.js';
 import { loadFragment } from '../fragment/fragment.js';
 
+/**
+ * Last `<meta name="...">` content for this name. Prefer over `getMetadata` when duplicate
+ * tags must not be comma-joined into one string.
+ * @param {string} name
+ */
+function getLastMetaContent(name) {
+  const nodes = [...document.head.querySelectorAll(`meta[name="${name}"]`)];
+  if (!nodes.length) return '';
+  const raw = nodes[nodes.length - 1].getAttribute('content');
+  return raw ? raw.trim() : '';
+}
+
+/**
+ * Page metadata names AEM may emit for the header XF path (hyphen, camel, lowercase).
+ */
+function resolveAemContentPath() {
+  const names = ['aem-content-path', 'aemContentPath', 'aemcontentpath'];
+  return names.map((n) => getLastMetaContent(n)).find(Boolean) || '';
+}
+
 /** AEM publish base URL; override with meta aem-publish-url. */
 const DEFAULT_AEM_PUBLISH_BASE_URL = 'https://publish-p192772-e2003561.adobeaemcloud.com';
 
@@ -180,10 +200,9 @@ function toggleMenu(nav, navSections, forceExpanded = null) {
  * @param {Element} block The header block element
  */
 export default async function decorate(block) {
-  const contentPath = getMetadata('aem-content-path') || getMetadata('aemContentPath')
-    || getMetadata('aemcontentpath');
+  const contentPath = resolveAemContentPath();
   if (contentPath) {
-    const baseUrl = getMetadata('aem-publish-url') || getMetadata('aempublishurl')
+    const baseUrl = getLastMetaContent('aem-publish-url') || getLastMetaContent('aempublishurl')
       || DEFAULT_AEM_PUBLISH_BASE_URL;
     try {
       const html = await fetchHeaderHtml(contentPath, baseUrl);

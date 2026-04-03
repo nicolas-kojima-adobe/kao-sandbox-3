@@ -14,10 +14,10 @@ import {
 
 /* Default aem-content-path when delivery does not emit meta (UE page metadata wins if present). */
 (function injectDefaultAemContentPathMeta() {
-  if (document.head.querySelector('meta[name="aem-content-path"]')
-      || document.head.querySelector('meta[name="aemContentPath"]')) {
-    return;
-  }
+  const pathMetaNames = ['aem-content-path', 'aemContentPath', 'aemcontentpath'];
+  const hasAuthored = pathMetaNames.some((name) => [...document.head.querySelectorAll(`meta[name="${name}"]`)]
+    .some((m) => m.getAttribute('content')?.trim()));
+  if (hasAuthored) return;
   const meta = document.createElement('meta');
   meta.name = 'aem-content-path';
   meta.content = '/content/kao-sandbox-3';
