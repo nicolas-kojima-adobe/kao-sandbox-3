@@ -33,13 +33,31 @@ const DEFAULT_AEM_CLIENTLIB_APP = 'kaosandbox2';
 
 /**
  * Builds the header URL for a given AEM content path.
- * @param {string} contentPath - e.g. '/content/kao-sandbox-3/us/en'
+ * @param {string} contentPath - e.g. '/content/kaosandbox2/us/en'
  * @param {string} baseUrl - AEM publish base URL
  * @returns {string}
  */
 function buildHeaderUrl(contentPath, baseUrl) {
   const normalized = contentPath.startsWith('/') ? contentPath : `/${contentPath}`;
   return `${baseUrl.replace(/\/$/, '')}${normalized}.eds-header.html`;
+}
+
+/**
+ * Builds a fallback URL to the locale header experience fragment (.plain.html) on publish.
+ * Used when `{contentPath}.eds-header.html` returns 200 with an empty body (e.g. JP Sites root
+ * not wired for eds-header). Expects `contentPath` like `/content/{site}/{region}/{locale}`.
+ * Override with meta `aem-header-fallback-url` (full URL) when your XF path differs.
+ * @param {string} contentPath
+ * @param {string} baseUrl
+ * @returns {string}
+ */
+function buildHeaderFragmentFallbackUrl(contentPath, baseUrl) {
+  const normalized = (contentPath.startsWith('/') ? contentPath : `/${contentPath}`).replace(/\/$/, '');
+  const segments = normalized.split('/').filter(Boolean);
+  if (segments.length !== 4 || segments[0] !== 'content') return '';
+  const [, site, region, locale] = segments;
+  if (!site || !region || !locale) return '';
+  return `${baseUrl.replace(/\/$/, '')}/content/experience-fragments/${site}/${region}/${locale}/site/header/master.plain.html`;
 }
 
 /**
@@ -66,6 +84,24 @@ async function fetchHeaderHtml(contentPath, baseUrl) {
     throw new Error(`[header] Failed to fetch header from AEM for path "${contentPath}": ${response.status} ${response.statusText}`);
   }
   return response.text();
+}
+
+/**
+ * Fetches header markup: primary `.eds-header.html`, then optional fragment `.plain.html` fallback.
+ * @param {string} contentPath
+ * @param {string} baseUrl
+ * @returns {Promise<string>}
+ */
+async function fetchAemHeaderMarkup(contentPath, baseUrl) {
+  const primary = (await fetchHeaderHtml(contentPath, baseUrl)).trim();
+  if (primary) return primary;
+  const fallbackUrl = getLastMetaContent('aem-header-fallback-url')
+    || getLastMetaContent('aemHeaderFallbackUrl')
+    || buildHeaderFragmentFallbackUrl(contentPath, baseUrl);
+  if (!fallbackUrl) return '';
+  const response = await fetch(fallbackUrl, { credentials: 'omit', cache: 'no-store' });
+  if (!response.ok) return '';
+  return (await response.text()).trim();
 }
 
 /**
@@ -205,7 +241,11 @@ export default async function decorate(block) {
     const baseUrl = getLastMetaContent('aem-publish-url') || getLastMetaContent('aempublishurl')
       || DEFAULT_AEM_PUBLISH_BASE_URL;
     try {
-      const html = await fetchHeaderHtml(contentPath, baseUrl);
+      const html = await fetchAemHeaderMarkup(contentPath, baseUrl);
+      if (!html) {
+        // eslint-disable-next-line no-console
+        console.warn('[header] AEM .eds-header.html and fragment fallback were empty for path:', contentPath);
+      }
       block.innerHTML = html;
       block.classList.add('header-aem-xf');
       try {

@@ -26,8 +26,15 @@
         "valueType": "string",
         "name": "aem-content-path",
         "label": "AEM Content Path",
-        "description": "AEM page path whose header should be displayed (e.g. /content/kao-sandbox-3/us/en)",
-        "value": "/content/kao-sandbox-3"
+        "description": "AEM Sites language root for this page (e.g. /content/kaosandbox2/us/en or /content/kaosandbox2/us/jp). Must match publish so .eds-header.html resolves.",
+        "value": "/content/kaosandbox2/us/en"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "aem-header-fallback-url",
+        "label": "AEM Header Fallback URL",
+        "description": "Optional full publish URL for header HTML when .eds-header.html is empty (e.g. your header XF master.plain.html). Leave blank to use the default /content/experience-fragments/.../site/header/master.plain.html pattern."
       }
     ]
   },

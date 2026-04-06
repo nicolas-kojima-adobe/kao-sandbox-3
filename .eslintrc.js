@@ -1,6 +1,9 @@
 module.exports = {
   root: true,
-  extends: 'airbnb-base',
+  // eslint-plugin-storybook v10+ is ESM-only and breaks ESLint 8 legacy config (require).
+  // Re-add when on ESLint 9 flat config.
+  extends: ['airbnb-base'],
+  ignorePatterns: ['stories/**', 'vitest.config.js', '.storybook/**'],
   env: {
     browser: true,
   },

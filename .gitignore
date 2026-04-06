@@ -13,3 +13,21 @@ helix-importer-ui
 # Ensure these files are tracked
 !CLAUDE.md
 !AGENTS.md
+
+# Storybook — build output, logs, local diagnostics
+storybook-creation-article.md
+storybook-static/
+*storybook.log
+debug-storybook.log
+chromatic.log
+chromatic-diagnostics.json
+
+# Vitest browser / Playwright (e.g. @storybook/addon-vitest)
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Tooling caches
+.eslintcache
+.vitest/

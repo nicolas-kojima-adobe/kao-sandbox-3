@@ -1,0 +1,5 @@
+/* Storybook only: hero.css uses light heading color for photo backgrounds; SB canvas is often white. */
+.hero-storybook .hero h1,
+.hero-storybook .hero p {
+  color: var(--text-color);
+}

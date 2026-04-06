@@ -20,7 +20,7 @@ import {
   if (hasAuthored) return;
   const meta = document.createElement('meta');
   meta.name = 'aem-content-path';
-  meta.content = '/content/kao-sandbox-3';
+  meta.content = '/content/kaosandbox2/us/en';
   document.head.appendChild(meta);
 }());
 

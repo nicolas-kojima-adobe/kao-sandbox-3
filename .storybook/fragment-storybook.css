@@ -1,0 +1,17 @@
+/* Storybook: fragment demo callout */
+.fragment-storybook-demo {
+  border: 1px dashed var(--dark-color);
+  padding: 16px;
+  max-width: 720px;
+}
+
+.fragment-storybook-demo-label {
+  margin: 0 0 12px;
+  font-size: var(--body-font-size-s);
+  color: var(--dark-color);
+}
+
+.fragment-storybook-demo-content {
+  background: var(--light-color);
+  padding: 16px;
+}
